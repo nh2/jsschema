@@ -112,10 +112,11 @@ function valid_schema(schema) {
 		throw "schema '" + schema + "' is not an object." + help;
 	}
 
-	schema.__proto__['_schema_checked'] = true;
+
+	schema.__proto__['_schema_checking'] = true;
 
 	for (var field in schema) {
-		if (field === '_schema_checked') continue;
+		if (field === '_schema_checking') continue;
 	
 		// check qualifier
 		if (schema[field].qualifier != "required" &&
@@ -128,14 +129,19 @@ function valid_schema(schema) {
 			; // all right
 		} else {
 			// check recursively, but watch out for loops
-			if (schema[field].type['_schema_checked']) {
+			if (schema[field].type['_schema_checking']) {
+				if (schema[field].qualifier == "required") {
+					throw "required fields can not be used recursively (think about it, it makes sense)"
+				}
 				schema_log("loop detected, already checked");
 			} else {
 				valid_schema(schema[field].type);
 			}
 		}
 	}
-	
+
+	schema.__proto__['_schema_checked'] = true;
+
 	return schema;
 }
 
