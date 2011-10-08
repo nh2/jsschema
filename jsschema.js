@@ -112,11 +112,13 @@ function valid_schema(schema) {
 		throw "schema '" + schema + "' is not an object." + help;
 	}
 
+	if (schema.__proto__['_schema_valid']) return schema;
 
 	schema.__proto__['_schema_checking'] = true;
 
 	for (var field in schema) {
 		if (field === '_schema_checking') continue;
+		// '_schema_valid' can not be here, it is returned early above
 	
 		// check qualifier
 		if (schema[field].qualifier != "required" &&
@@ -141,6 +143,7 @@ function valid_schema(schema) {
 	}
 
 	schema.__proto__['_schema_checked'] = true;
+	delete schema.__proto__['_schema_valid'];
 
 	return schema;
 }
