@@ -6,57 +6,6 @@ schema_log = function() {
 }
 
 
-peter = {
-	name: "Peter",
-	age: 20
-}
-
-
-
-student = {
-	name: "asdf",
-	age: 1
-}
-
-
-student2 = {
-	name: "string",
-	age: "number",
-	parent: "student",
-	
-	parent: {
-		name: "mom",
-		address: "asdfsad fasfd"
-	}
-}
-
-
-
-bad = {
-	name: "Peter"
-}
-
-function check(schema, object) {
-	if (schema.__proto__ === undefined || object.__proto__ === undefined) return false;
-	if (schema.__proto__ !== object.__proto__) return false;
-
-	for (var field in schema) {
-		if (object[field] === undefined) return false;
-		if (typeof schema[field] != typeof object[field]) {
-			return false;
-		}
-		
-		if (typeof schema[field] === "object") {
-			return check(schema[field], object[field]);
-		}
-		return true;
-	}
-}
-
-
-
-
-
 function required(type) {
 	return {qualifier: "required", type: type};
 }
@@ -119,7 +68,7 @@ function valid_schema(schema) {
 	for (var field in schema) {
 		if (field === '_schema_checking') continue;
 		// '_schema_valid' can not be here, it is returned early above
-	
+
 		// check qualifier
 		if (schema[field].qualifier != "required" &&
 				schema[field].qualifier != "optional" &&
@@ -186,7 +135,7 @@ function check(schema, object) {
 					}
 				}
 				break;
-					
+
 			case "optional":
 				if (object[field] === undefined || object[field] === null) {
 					// it's optional and not there, all right, continue
@@ -204,14 +153,14 @@ function check(schema, object) {
 					}
 				}
 				break;
-				
+
 			case "repeated":
 				// object check: only allow arrays
 				if (object[field] === undefined || object[field] === null)
 					throw "repeated field '" + field + "' is '" + object[field] + "'";
 				if (object[field].__proto__ !== [].__proto__)
 					throw "repeated field '" + field + "' is not an array: '" + object[field] + "'";
-				
+
 				// is it an array of primitives or objects?
 				if (isPrimitive(schema[field].type)) {
 					for (var index in object[field]) {
@@ -230,115 +179,20 @@ function check(schema, object) {
 					}
 				}
 				break;
-				
+
 		}
 		// if switch did not match: bad input (but this is checked by valid())
 	}
+
+	return object;
 }
 
+exports.schema = schema;
+exports.required = required;
+exports.optional = optional;
+exports.repeated = repeated;
+exports.check = check;
+exports.valid = valid;
 
-function main() {
-
-	student = schema(function() {
-		this.name = required("string");
-		this.age = required("number");
-	
-		this.parent = optional(this);
-	
-		this.goodBirthdays = repeated("number");
-		this.friends = repeated(this);
-	});
-
-	peter = {
-		name: "Peter",
-		age: 14,
-		parent: null,
-		goodBirthdays: [],
-		friends: []
-	};
-	
-	john = {
-		name: "John",
-		parent: null,
-		goodBirthdays: [],
-		friends: []
-	};
-
-	jack = {
-		name: "Jack",
-		age: "10",
-		parent: null,
-		goodBirthdays: [],
-		friends: []
-	};
-
-	jim = {
-		name: "Jim",
-		age: 10,
-		parent: null,
-		goodBirthdays: [],
-		friends: [{ name: "Joseph" }]
-	};
-
-	jake = {
-		name: "Jim",
-		age: 10,
-		parent: null,
-		goodBirthdays: [],
-		friends: {}
-	};
-
-	function test(obj, schema, schemaName) {
-		console.log(obj);
-		try {
-			check(schema, obj);
-			console.log("-> is a " + schemaName);
-		} catch (e) {
-			console.log("-> is NOT a " + schemaName + ": " + e);
-		}
-		console.log();
-	}
-	
-	function testStudent(s) {
-		return test(s, student, "student");
-	}
-	
-	function testTeacher(t) {
-		return test(t, teacher, "teacher");
-	}
-
-	testStudent(peter);
-	testStudent(john);
-	testStudent(jack);
-	testStudent(jim);
-	testStudent(jake);
-	
-	
-	teacher = schema(function() {
-		this.fav = optional(student);
-	});
-	
-	schema(teacher = (function() {
-		function teacher() {}
-		teacher.fav = optional(student);
-		teacher.affair = optional(teacher);
-		return teacher;
-	})());
-	
-	mrGarrison = {
-		fav: peter
-	}
-
-	someOtherTeacher = {
-		fav: peter,
-		affair: mrGarrison
-	}
-
-	testTeacher(mrGarrison);
-	testTeacher(someOtherTeacher);
-}
-
-main()
-
-
-
+// TODO:
+// test extends
