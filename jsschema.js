@@ -66,8 +66,7 @@ function valid_schema(schema) {
 	schema.__proto__['_schema_checking'] = true;
 
 	for (var field in schema) {
-		if (field === '_schema_checking') continue;
-		// '_schema_valid' can not be here, it is returned early above
+		if (field.indexOf('_schema_') === 0) continue;
 
 		// check qualifier
 		if (schema[field].qualifier != "required" &&
@@ -117,11 +116,13 @@ function check(schema, object) {
 
 	for (var field in schema) {
 
+		if (field.indexOf('_schema_') === 0) continue;
+
 		switch (schema[field].qualifier) {
 
 			case "required":
 				if (object[field] === undefined || object[field] === null)
-					throw "required field '" + field + "' is '" + object[field] + "'";
+					throw "required field '" + field + "' is " + object[field];
 				// check structure recursively
 				if (isPrimitive(schema[field].type)) {
 					// check primitive
