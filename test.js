@@ -1,9 +1,34 @@
-jsschema = require('./jsschema.js')
+jsschema = require('./jsschema.js');
 
 schema = jsschema.schema;
 required = jsschema.required;
 optional = jsschema.optional;
 repeated = jsschema.repeated;
+
+
+throwsLogged = function(test, block) {
+	try {
+		block();
+	} catch (e) {
+		console.log("  - " + e);
+		test.throws(block);
+	}
+}
+
+
+valid_schema_fn = function (test, schema) {
+	return function(valid_expected_object) {
+		test.ok(jsschema.check(schema, valid_expected_object));
+		test.strictEqual(jsschema.valid(schema, valid_expected_object), true);
+	};
+};
+
+invalid_schema_fn = function (test, schema) {
+	return function(invalid_expected_object) {
+		throwsLogged(test, function() { jsschema.check(schema, invalid_expected_object); });
+		test.strictEqual(jsschema.valid(schema, invalid_expected_object), false);
+	};
+};
 
 
 student = schema(function() {
@@ -56,42 +81,33 @@ jake = {
 };
 
 
-throwsLogged = function(test, block) {
-	try {
-		block();
-	} catch (e) {
-		console.log(e);
-		test.throws(block);
-	}
-}
-
 exports['normal case'] = function(test) {
-	test.ok(jsschema.check(student, peter));
-	test.strictEqual(jsschema.valid(student, peter), true);
+	expect_valid = valid_schema_fn(test, student);
+	expect_valid(peter);
 	test.done();
 };
 
 exports['field missing: age'] = function(test) {
-	throwsLogged(test, function(){ jsschema.check(student, john) });
-	test.strictEqual(jsschema.valid(student, john), false);
+	expect_invalid = invalid_schema_fn(test, student);
+	expect_invalid(john);
 	test.done();
 };
 
 exports['wrong type: age'] = function(test) {
-	throwsLogged(test, function(){ jsschema.check(student, jack) });
-	test.strictEqual(jsschema.valid(student, jack), false);
+	expect_invalid = invalid_schema_fn(test, student);
+	expect_invalid(jack);
 	test.done();
 };
 
 exports['repeated field has entry with wrong structure: friends'] = function(test) {
-	throwsLogged(test, function(){ jsschema.check(student, jake) });
-	test.strictEqual(jsschema.valid(student, jake), false);
+	expect_invalid = invalid_schema_fn(test, student);
+	expect_invalid(jake);
 	test.done();
 };
 
 exports['repeated field is not an array: friends'] = function(test) {
-	throwsLogged(test, function(){ jsschema.check(student, jim) });
-	test.strictEqual(jsschema.valid(student, jim), false);
+	expect_invalid = invalid_schema_fn(test, student);
+	expect_invalid(jim);
 	test.done();
 };
 
@@ -111,14 +127,14 @@ someOtherTeacher = {
 }
 
 exports['recursive type optional field not set'] = function(test) {
-	test.ok(jsschema.check(teacher, mrGarrison));
-	test.strictEqual(jsschema.valid(teacher, mrGarrison), true);
+	expect_valid = valid_schema_fn(test, teacher);
+	expect_valid(mrGarrison);
 	test.done();
 };
 
 exports['recursive type optional field set'] = function(test) {
-	test.ok(jsschema.check(teacher, someOtherTeacher));
-	test.strictEqual(jsschema.valid(teacher, someOtherTeacher), true);
+	expect_valid = valid_schema_fn(test, teacher);
+	expect_valid(someOtherTeacher);
 	test.done();
 };
 
@@ -141,14 +157,14 @@ CSsomeOtherTeacher = {
 }
 
 exports['(coffe-script class generated) recursive type optional field not set'] = function(test) {
-	test.ok(jsschema.check(CSteacher, CSmrGarrison));
-	test.strictEqual(jsschema.valid(teacher, CSmrGarrison), true);
+	expect_valid = valid_schema_fn(test, CSteacher);
+	expect_valid(CSmrGarrison);
 	test.done();
 };
 
 exports['(coffe-script class generated) recursive type optional field set'] = function(test) {
-	test.ok(jsschema.check(CSteacher, CSsomeOtherTeacher));
-	test.strictEqual(jsschema.valid(teacher, CSsomeOtherTeacher), true);
+	expect_valid = valid_schema_fn(test, CSteacher);
+	expect_valid(CSsomeOtherTeacher);
 	test.done();
 };
 
