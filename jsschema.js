@@ -41,6 +41,9 @@ repeated:
 	[] -> OK
 */
 
+ANY = new Object();
+ANY_NOT_UNDEFINED = new Object();
+ANY_NOT_NULL = new Object();
 
 
 function isPrimitive(v) {
@@ -67,6 +70,11 @@ function valid_schema(schema) {
 
 	for (var field in schema) {
 		if (field.indexOf('_schema_') === 0) continue;
+
+		// Handle the `ANY` schemas.
+		if (schema[field] === ANY) continue;
+		if (schema[field] === ANY_NOT_UNDEFINED) continue;
+		if (schema[field] === ANY_NOT_NULL) continue;
 
 		// check qualifier
 		if (schema[field].qualifier != "required" &&
@@ -117,6 +125,23 @@ function check(schema, object) {
 	for (var field in schema) {
 
 		if (field.indexOf('_schema_') === 0) continue;
+
+		// The `ANY` schema accepts any object.
+		if (schema[field] === ANY) continue;
+
+		// The `ANY_NOT_UNDEFINED` accepts any object that is not undefined.
+		if (schema[field] === ANY_NOT_UNDEFINED) {
+			if (object[field] === undefined)
+				throw "ANY_NOT_UNDEFINED field '" + field + "' of is " + object[field];
+			continue;
+		}
+
+		// The `ANY_NOT_NULL` accepts any object that is neither undefined nor null.
+		if (schema[field] === ANY_NOT_NULL) {
+			if (object[field] === undefined || object[field] === null)
+				throw "ANY_NOT_NULL field '" + field + "' of is " + object[field];
+			continue;
+		}
 
 		switch (schema[field].qualifier) {
 
@@ -194,6 +219,10 @@ exports.optional = optional;
 exports.repeated = repeated;
 exports.check = check;
 exports.valid = valid;
+exports.ANY = ANY;
+exports.ANY_NOT_UNDEFINED = ANY_NOT_UNDEFINED;
+exports.ANY_NOT_NULL = ANY_NOT_NULL;
+
 
 // TODO:
 // test extends

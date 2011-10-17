@@ -178,3 +178,78 @@ exports['recursive required fields are forbidden'] = function(test) {
 	test.done();
 };
 
+
+arbitraryDataContainer = schema(function() {
+	this.name = required("string");
+	this.data = jsschema.ANY;
+});
+
+arbitraryDataContainerUndefined = {
+	name: "arbitraryDataContainerUndefined",
+	data: undefined
+}
+
+arbitraryDataContainerNull = {
+	name: "arbitraryDataContainerNull",
+	data: null
+}
+
+arbitraryDataContainerEmptyObject = {
+	name: "arbitraryDataContainerEmptyObject",
+	data: {}
+}
+
+arbitraryDataContainerTeacherObject = {
+	name: "arbitraryDataContainerTeacherObject",
+	data: mrGarrison
+}
+
+exports['jsschema.ANY allows any value'] = function(test) {
+
+	expect_valid = valid_schema_fn(test, arbitraryDataContainer);
+
+	expect_valid(arbitraryDataContainerUndefined);
+	expect_valid(arbitraryDataContainerNull);
+	expect_valid(arbitraryDataContainerEmptyObject);
+	expect_valid(arbitraryDataContainerTeacherObject);
+
+	test.done();
+};
+
+
+notUndefinedDataContainer = schema(function() {
+	this.name = required("string");
+	this.data = jsschema.ANY_NOT_UNDEFINED;
+});
+
+exports['jsschema.ANY_NOT_UNDEFINED allows any but undefined values'] = function(test) {
+
+	expect_valid = valid_schema_fn(test, notUndefinedDataContainer);
+	expect_invalid = invalid_schema_fn(test, notUndefinedDataContainer);
+
+	expect_invalid(arbitraryDataContainerUndefined);
+	expect_valid(arbitraryDataContainerNull);
+	expect_valid(arbitraryDataContainerEmptyObject);
+	expect_valid(arbitraryDataContainerTeacherObject);
+
+	test.done();
+};
+
+
+notNullDataContainer = schema(function() {
+	this.name = required("string");
+	this.data = jsschema.ANY_NOT_NULL;
+});
+
+exports['jsschema.ANY_NOT_NULL allows any but undefined and null values'] = function(test) {
+
+	expect_valid = valid_schema_fn(test, notNullDataContainer);
+	expect_invalid = invalid_schema_fn(test, notNullDataContainer);
+
+	expect_valid(arbitraryDataContainerEmptyObject);
+	expect_valid(arbitraryDataContainerTeacherObject);
+	expect_invalid(arbitraryDataContainerUndefined);
+	expect_invalid(arbitraryDataContainerNull);
+
+	test.done();
+};
