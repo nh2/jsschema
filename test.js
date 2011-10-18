@@ -111,6 +111,14 @@ exports['repeated field is not an array: friends'] = function(test) {
 	test.done();
 };
 
+exports['non-objects never match a schema'] = function(test) {
+	expect_invalid = invalid_schema_fn(test, student);
+	expect_invalid("asdf");
+	expect_invalid(1);
+	expect_invalid(1.2);
+	test.done();
+};
+
 
 teacher = schema(function() {
 	this.fav = optional(student);

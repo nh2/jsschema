@@ -119,7 +119,6 @@ function primitiveTypeMismatchMsg(qualifier, field, value, expectedType) {
 	return qualifier + " field '" + field + "' type mismatch: '" + value + "' (type '" + typeof value + "') is not of schema type '" + expectedType + "'";
 }
 
-// pre: object is an object or undefined or null, really!
 function check(schema, object) {
 
 	for (var field in schema) {
