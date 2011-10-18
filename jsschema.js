@@ -1,11 +1,122 @@
+/* Copyright (c) 2011 Niklas Hambuechen and Andras Slemmer.
+   MIT licensed. */
 
+// *jsschema* is a simple way to specify the structure of JavaScript objects. It is inspired by Google [protobuffers](http://code.google.com/apis/protocolbuffers/).
+//
+// Its main use is allowing JavaScript and backend programmers to specify the structure of the data they are exchanging (e.g. via JSON).
+//
+// After having specified a schema, you can use it to find out if a given object matches its structure.
+/* Times of malformed objects, begone! */
+
+// A schema looks like this:
+/*
+student = schema(function() {
+	this.name = required("string");
+	this.age = optional("number");
+	this.fiends = repeated(this);
+});
+*/
+
+// You can validate objects on schemas with:
+//
+// - `valid` tells if the object matches the schema.
+// - If the object matches the schema, `check` returns the object. Throws an exception otherwise.
+/* jsschema.valid (schema, object) */
+/* jsschema.check (schema, object) */
+
+// ## Example
+
+// `klaus` is a valid student, because all his fields match the schema.
+//
+// `olaf` is not, because he lacks the `friends` field.
+//
+// `unknown` is not a student, because the `required` field `name` is null.
+/*
+klaus = {
+	name: "Klaus Baudelaire",
+	age: 15,
+	friends: []
+};
+
+olaf = {
+	name: "Count Olaf",
+	age: 42
+};
+
+unknown = {
+	name: null,
+	age: null,
+	friends: []
+};
+
+jsschema.valid (student, klaus)  // === true
+jsschema.valid (student, olaf)  // === false
+jsschema.valid (student, unknown)  // === false
+*/
+
+// ## API
+
+// ### Qualifiers
+// - `required`: the given type or schema must be present and not be `null` or `undefined`
+// - `optional`: the given type or schema must either match or be `null` `undefined`
+// - `repeated`: must be an array of given type or schema
+//
+// ### Special schemas
+// - `ANY` matches any object
+// - `ANY_NOT_UNDEFINED` matches any object that is not `undefined`
+// - `ANY_NOT_NULL` matches any object that is not `null` or `undefined`
+/*
+wrapper = schema(function() {
+	this.typeName = required("string");
+	this.content = ANY;
+});
+
+wrapperObject = {
+	typeName: "custom js object",
+	content: { a: 1, b: { x: "hello" } }
+};
+
+jsschema.valid (wrapper, wrapperObject)  // === true
+*/
+
+
+// ## Schemas in CoffeeScript
+// If you use coffee-script, schemas can be declared in an even more elegant way:
+/*
+student = schema ->
+	@name    = required "string"
+	@age     = optional "number"
+	@friends = repeated this
+*/
+// In both CoffeeScript and JavaScript, you can refer to other schemas.
+//
+// You can also create recursive schemas (e.g. a teacher having a teacher as affair) by using `this`.
+/*
+teacher = schema ->
+	@pupils = repeated student
+	@affair = optional this
+*/
+// CoffeeScripts class syntax does the same thing, but looks even nicer allows you to create recursive schemas by name instead of using `this`.
+/*
+schema class teacher
+	@pupils = repeated student
+	@affair = optional teacher
+*/
+
+// ## License
+// *jsschema* is [MIT-Licensed](http://www.opensource.org/licenses/mit-license.php).
+
+// ## Source Code
+
+// Turn debugging on/off.
 SCHEMA_DEBUG = false;
 
+// Custom log function.
 schema_log = function() {
 	if (SCHEMA_DEBUG) console.log.apply(this, arguments);
 }
 
-
+// Qualifiers
 function required(type) {
 	return {qualifier: "required", type: type};
 }
@@ -18,7 +129,7 @@ function repeated(type) {
 	return {qualifier: "repeated", type: type};
 }
 
-
+// Some examples of what the different qualifiers should match.
 /*
 required:
 	"adsf" -> OK
@@ -50,13 +161,15 @@ function isPrimitive(v) {
 	return typeof v === "string";
 }
 
-
+// Schema creation function. Returns the schema if valid. Throws an exception if the schema is malformed.
 function schema(schema_fn) {
 	return valid_schema(new schema_fn());
 }
 
 
-// Uses duck-typing to note schemas as checked. Does NOT clean up the _schema_checked attributes on error or success. So don't call, change, call again!
+// Returns the schema if valid. Throws an exception otherwise.
+//
+// Uses duck-typing to note schemas as checked. Does **NOT** clean up the `_schema_checked` attributes on error or success. So don't call it, change the schema object, and call again!
 function valid_schema(schema) {
 	if (typeof schema !== "object") {
 		var help = "";
@@ -76,17 +189,19 @@ function valid_schema(schema) {
 		if (schema[field] === ANY_NOT_UNDEFINED) continue;
 		if (schema[field] === ANY_NOT_NULL) continue;
 
-		// check qualifier
+		// Make sure a qualifier is set.
 		if (schema[field].qualifier != "required" &&
 				schema[field].qualifier != "optional" &&
 				schema[field].qualifier != "repeated")
 			throw "Invalid qualifier '" + schema[field].qualifier + "'";
 
-		// check type
+		// Check the type of the field.
+
 		if (isPrimitive(schema[field].type)) {
-			; // all right
+			// Primitive fields cannot go wrong.
+			;  // Nothing to do.
 		} else {
-			// check recursively, but watch out for loops
+			// Fields that are schemas have to be recursively. We watch out for loops!
 			if (schema[field].type['_schema_checking']) {
 				if (schema[field].qualifier == "required") {
 					throw "required fields can not be used recursively (think about it, it makes sense)"
@@ -105,6 +220,7 @@ function valid_schema(schema) {
 }
 
 
+// Returns `true` if the object matches the schema, `false` otherwise.
 function valid(schema, object) {
 	try {
 		check(schema, object);
@@ -115,14 +231,17 @@ function valid(schema, object) {
 }
 
 
+// Extracted common error messages.
 function primitiveTypeMismatchMsg(qualifier, field, value, expectedType) {
 	return qualifier + " field '" + field + "' type mismatch: '" + value + "' (type '" + typeof value + "') is not of schema type '" + expectedType + "'";
 }
 
+// Returns the object if it matches the schema. Throws an exception otherwise.
 function check(schema, object) {
 
 	for (var field in schema) {
 
+		// Skip fields we use internally.
 		if (field.indexOf('_schema_') === 0) continue;
 
 		// The `ANY` schema accepts any object.
@@ -142,17 +261,18 @@ function check(schema, object) {
 			continue;
 		}
 
+		// Handle the different qualifiers.
 		switch (schema[field].qualifier) {
 
 			case "required":
 				if (object[field] === undefined || object[field] === null)
 					throw "required field '" + field + "' is " + object[field];
-				// check structure recursively
 				if (isPrimitive(schema[field].type)) {
-					// check primitive
+					// Check primitive field's type.
 					if (typeof object[field] !== schema[field].type)
 						throw primitiveTypeMismatchMsg("required", field, object[field], schema[field].type);
 				} else {
+					// Schema field: check structure recursively.
 					try {
 						check(schema[field].type, object[field]);
 					} catch (e) {
@@ -163,14 +283,15 @@ function check(schema, object) {
 
 			case "optional":
 				if (object[field] === undefined || object[field] === null) {
-					// it's optional and not there, all right, continue
-				// it's optional and there
+					// Field is is optional and not present, all right, continue.
+					;  // Nothing to do.
+				// Field is optional and present.
 				} else if (isPrimitive(schema[field].type)) {
-					// check primitive
+					// Check primitive field's type.
 					if (typeof object[field] !== schema[field].type)
 						throw primitiveTypeMismatchMsg("optional", field, object[field], schema[field].type);
 				} else {
-					// check structure recursively
+					// Schema field: check structure recursively.
 					try {
 						check(schema[field].type, object[field]);
 					} catch (e) {
@@ -180,22 +301,22 @@ function check(schema, object) {
 				break;
 
 			case "repeated":
-				// object check: only allow arrays
+				// Object check: only allow arrays.
 				if (object[field] === undefined || object[field] === null)
 					throw "repeated field '" + field + "' is '" + object[field] + "'";
 				if (object[field].__proto__ !== [].__proto__)
 					throw "repeated field '" + field + "' is not an array: '" + object[field] + "'";
 
-				// is it an array of primitives or objects?
+				// Is it an array of primitives or objects?
 				if (isPrimitive(schema[field].type)) {
 					for (var index in object[field]) {
-						// check if the array entry has that primitive type
+						// Check if the array entry has that primitive type
 						if (typeof object[field][index] !== schema[field].type)
 							throw primitiveTypeMismatchMsg("repeated", field, object[field], schema[field].type);
 					}
 				} else {
 					for (var index in object[field]) {
-						// check recursively if the array entry hast that complex type
+						// Repeated schema field: check recursively if the array entry matches the subschema
 						try {
 							check(schema[field].type, object[field][index]);
 						} catch (e) {
@@ -206,12 +327,14 @@ function check(schema, object) {
 				break;
 
 		}
-		// if switch did not match: bad input (but this is checked by valid())
+		// If switch did not match, we got a bad input (but this impossible due to the `valid_schema()` check).
+		throw "jsschema: Illegal state: No quantifier matched"
 	}
 
 	return object;
 }
 
+// Public API
 exports.schema = schema;
 exports.required = required;
 exports.optional = optional;
@@ -222,6 +345,5 @@ exports.ANY = ANY;
 exports.ANY_NOT_UNDEFINED = ANY_NOT_UNDEFINED;
 exports.ANY_NOT_NULL = ANY_NOT_NULL;
 
-
-// TODO:
-// test extends
+// ## TODO:
+// - test coffee-script's extends
