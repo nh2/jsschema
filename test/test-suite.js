@@ -82,11 +82,8 @@
 
 
 	exports['normal case'] = function(test) {
-	console.log("before");
-				console.log("asdf" + jsschema.check(student, peter));
-				console.log("over");
 		expect_valid = valid_schema_fn(test, student);
-		//expect_valid(peter);
+		expect_valid(peter);
 		test.done();
 	};
 
