@@ -191,7 +191,7 @@ schema class teacher
 			if (schema[field].qualifier != "required" &&
 					schema[field].qualifier != "optional" &&
 					schema[field].qualifier != "repeated")
-				throw new Error("Invalid qualifier '" + schema[field].qualifier + "'");
+				throw new Error("Invalid qualifier '" + schema[field].qualifier + "' on field '" + field + "'");
 
 			// Check the type of the field.
 
