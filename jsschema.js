@@ -87,7 +87,10 @@ student = schema ->
 	@name    = required "string"
 	@age     = optional "number"
 	@friends = repeated this
+	return
 */
+// A caveat is that you need the `return` because otherwise CoffeeScript returns the last value (`@friends` in this example). See the `schema class` below for the best way.
+
 // In both CoffeeScript and JavaScript, you can refer to other schemas.
 //
 // You can also create recursive schemas (e.g. a teacher having a teacher as affair) by using `this`.
@@ -95,8 +98,11 @@ student = schema ->
 teacher = schema ->
 	@pupils = repeated student
 	@affair = optional this
+	return
 */
-// CoffeeScripts class syntax does the same thing, but looks even nicer allows you to create recursive schemas by name instead of using `this`.
+// CoffeeScripts class syntax does the same thing, but looks even nicer allows you to create recursive schemas by name instead of using `this`. It also needs no `return`. This is the best way to use *jsschema* with CoffeeScript.
+//
+// *(Note that although it is called `class`, CoffeeScript's class construct is neither evil nor magic: It compiles to a standard object, just with easier name access.)*
 /*
 schema class teacher
 	@pupils = repeated student
