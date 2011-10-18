@@ -1,37 +1,18 @@
 (function(exports) {
 
-	schema = jsschema.schema;
-	required = jsschema.required;
-	optional = jsschema.optional;
-	repeated = jsschema.repeated;
+	var schema = jsschema.schema;
+	var required = jsschema.required;
+	var optional = jsschema.optional;
+	var repeated = jsschema.repeated;
 
+	// `helpers.js` must be included by the by the test executing the suite.
+	var helpers = jsschema.test.helpers;
 
-	throwsLogged = function(test, block) {
-		try {
-			block();
-		} catch (e) {
-			console.log("  + " + e);
-			test.throws(block);
-		}
-	}
+	var throwsLogged = helpers.throwsLogged;
+	var valid_schema_fn = helpers.valid_schema_fn;
+	var invalid_schema_fn = helpers.invalid_schema_fn;
 
-
-	valid_schema_fn = function (test, schema) {
-		return function(valid_expected_object) {
-			test.ok(jsschema.check(schema, valid_expected_object));
-			test.strictEqual(jsschema.valid(schema, valid_expected_object), true);
-		};
-	};
-
-	invalid_schema_fn = function (test, schema) {
-		return function(invalid_expected_object) {
-			throwsLogged(test, function() { jsschema.check(schema, invalid_expected_object); });
-			test.strictEqual(jsschema.valid(schema, invalid_expected_object), false);
-		};
-	};
-
-
-	student = schema(function() {
+	var student = schema(function() {
 		this.name = required("string");
 		this.age = required("number");
 
@@ -41,7 +22,7 @@
 		this.friends = repeated(this);
 	});
 
-	peter = {
+	var peter = {
 		name: "Peter",
 		age: 14,
 		parent: null,
@@ -49,14 +30,14 @@
 		friends: []
 	};
 
-	john = {
+	var john = {
 		name: "John",
 		parent: null,
 		goodBirthdays: [],
 		friends: []
 	};
 
-	jack = {
+	var jack = {
 		name: "Jack",
 		age: "10",
 		parent: null,
@@ -64,7 +45,7 @@
 		friends: []
 	};
 
-	jim = {
+	var jim = {
 		name: "Jim",
 		age: 10,
 		parent: null,
@@ -72,7 +53,7 @@
 		friends: [{ name: "Joseph" }]
 	};
 
-	jake = {
+	var jake = {
 		name: "Jim",
 		age: 10,
 		parent: null,
@@ -120,16 +101,16 @@
 	};
 
 
-	teacher = schema(function() {
+	var teacher = schema(function() {
 		this.fav = optional(student);
 		this.affair = optional(this);
 	});
 
-	mrGarrison = {
+	var mrGarrison = {
 		fav: peter
 	}
 
-	someOtherTeacher = {
+	var someOtherTeacher = {
 		fav: peter,
 		affair: mrGarrison
 	}
@@ -155,11 +136,11 @@
 		return CSteacher;
 	})());
 
-	CSmrGarrison = {
+	var CSmrGarrison = {
 		fav: peter
 	}
 
-	CSsomeOtherTeacher = {
+	var CSsomeOtherTeacher = {
 		fav: peter,
 		affair: mrGarrison
 	}
@@ -187,27 +168,27 @@
 	};
 
 
-	arbitraryDataContainer = schema(function() {
+	var arbitraryDataContainer = schema(function() {
 		this.name = required("string");
 		this.data = optional("object");
 	});
 
-	arbitraryDataContainerUndefined = {
+	var arbitraryDataContainerUndefined = {
 		name: "arbitraryDataContainerUndefined",
 		data: undefined
 	}
 
-	arbitraryDataContainerNull = {
+	var arbitraryDataContainerNull = {
 		name: "arbitraryDataContainerNull",
 		data: null
 	}
 
-	arbitraryDataContainerEmptyObject = {
+	var arbitraryDataContainerEmptyObject = {
 		name: "arbitraryDataContainerEmptyObject",
 		data: {}
 	}
 
-	arbitraryDataContainerTeacherObject = {
+	var arbitraryDataContainerTeacherObject = {
 		name: "arbitraryDataContainerTeacherObject",
 		data: mrGarrison
 	}
@@ -225,7 +206,7 @@
 	};
 
 
-	notNullDataContainer = schema(function() {
+	var notNullDataContainer = schema(function() {
 		this.name = required("string");
 		this.data = required("object");
 	});

@@ -38,8 +38,8 @@ task 'watch', 'Recompile CoffeeScript source files when modified', ->
 task 'test', 'Run the test suite', ->
 	build ->
 		require.paths.unshift __dirname + "/lib"
-		{reporters} = require 'nodeunit'
+		reporter = require('nodeunit').reporters.default
 		process.chdir __dirname
-		reporters.default.run ['test/test.js', 'test/test-coffee-script.coffee']
+		reporter.run ['test/test.js', 'test/test-coffee-script.coffee']
 
 

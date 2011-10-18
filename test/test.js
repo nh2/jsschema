@@ -1,4 +1,5 @@
 jsschema = require('../jsschema.js');
+require('./helpers.js');
 
 var testSuite = require('./test-suite.js');
 
