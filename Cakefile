@@ -1,6 +1,6 @@
 fs = require 'fs'
 path = require 'path'
-{print} = require 'sys'
+{print} = require 'util'
 {spawn, exec} = require 'child_process'
 
 SRC_DIR = '.'
@@ -37,9 +37,6 @@ task 'watch', 'Recompile CoffeeScript source files when modified', ->
 
 task 'test', 'Run the test suite', ->
 	build ->
-		require.paths.unshift __dirname + "/lib"
 		reporter = require('nodeunit').reporters.default
 		process.chdir __dirname
 		reporter.run ['test/test.js', 'test/test-coffee-script.coffee']
-
-
