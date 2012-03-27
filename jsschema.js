@@ -124,18 +124,103 @@ schema class teacher
 		if (SCHEMA_DEBUG) console.log.apply(this, arguments);
 	}
 
-	// Qualifiers
-	function required(type) {
-		return {qualifier: "required", type: type};
+    // a schema field
+    function schemaField (q, ty) {
+	this.qualifier = q;
+	this.type = ty;
+    }
+
+    function checkField (field, object, fieldName) {
+
+	    fieldName = typeof fieldName !== 'undefined' ? fieldName : "?";
+
+
+	    // Handle the different qualifiers.
+	    switch (field.qualifier) {
+
+	    case "required":
+		if (object === undefined || object === null)
+		    throw new Error("required fieldName '" + fieldName + "' is " + object);
+		if (isPrimitive(field.type)) {
+		    // Check primitive fieldName's type.
+		    if (typeof object !== field.type)
+			throw primitiveTypeMismatchError("required", fieldName, object, field.type);
+		} else {
+		    // Schema fieldName: check structure recursively.
+		    try {
+			check(field.type, object);
+		    } catch (e) {
+			throw new Error("required fieldName '" + fieldName + "' substructure mismatch: { " + e + " }");
+		    }
+		}
+		break;
+
+	    case "optional":
+		if (object === undefined || object === null) {
+		    // FieldName is is optional and not present, all right, continue.
+		    ;  // Nothing to do.
+		    // FieldName is optional and present.
+		} else if (isPrimitive(field.type)) {
+		    // Check primitive fieldName's type.
+		    if (typeof object !== field.type)
+			throw primitiveTypeMismatchError("optional", fieldName, object, field.type);
+		} else {
+		    // Schema fieldName: check structure recursively.
+		    try {
+			check(field.type, object);
+		    } catch (e) {
+			throw new Error("optional fieldName '" + fieldName + "' substructure mismatch: { " + e + " }");
+		    }
+		}
+		break;
+
+	    case "repeated":
+		// Object check: only allow arrays.
+		if (object === undefined || object === null)
+		    throw new Error("repeated fieldName '" + fieldName + "' is '" + object + "'");
+		if (object.__proto__ !== [].__proto__)
+		    throw new Error("repeated fieldName '" + fieldName + "' is not an array: '" + object + "'");
+
+		// Is it an array of primitives or objects?
+		if (isPrimitive(field.type)) {
+		    for (var index in object) {
+			// Check if the array entry has that primitive type
+			if (typeof object[index] !== field.type)
+			    throw primitiveTypeMismatchError("repeated", fieldName, object, field.type);
+		    }
+		} else {
+		    for (var index in object) {
+			// Repeated schema fieldName: check recursively if the array entry matches the subschema
+			try {
+			    check(field.type, object[index]);
+			} catch (e) {
+			    throw new Error("repeated fieldName '" + fieldName + "' substructure mismatch: { " + e + " }");
+			}
+		    }
+		}
+		break;
+
+	    default:
+		// If switch did not match, we got a bad input (but field impossible due to the `valid_schema()` check).
+		throw new Error("jsschema: Illegal state: No qualifier matched");
+
+	    }
 	}
 
-	function optional(type) {
-		return {qualifier: "optional", type: type};
-	}
+    // Qualifiers
+    function required(type) {
+	var ret = new schemaField ("required", type);
+	return ret;
+	
+    }
 
-	function repeated(type) {
-		return {qualifier: "repeated", type: type};
-	}
+    function optional(type) {
+	return new schemaField ("optional", type);
+    }
+
+    function repeated(type) {
+	return new schemaField ("repeated", type);
+    }
 
 	// Some examples of what the different qualifiers should match.
 	/*
@@ -160,14 +245,14 @@ schema class teacher
 		[] -> OK
 	*/
 
-	function isPrimitive(v) {
-		return typeof v === "string";
-	}
+    function isPrimitive(v) {
+	return typeof v === "string";
+    }
 
-	// Schema creation function. Returns the schema if valid. Throws an error if the schema is malformed.
-	function schema(schema_fn) {
-		return valid_schema(new schema_fn());
-	}
+    // Schema creation function. Returns the schema if valid. Throws an error if the schema is malformed.
+    function schema(schema_fn) {
+	return valid_schema(new schema_fn());
+    }
 
 
 	// Returns the schema if valid. Throws an error otherwise.
@@ -229,6 +314,16 @@ schema class teacher
 	}
 
 
+    function validField(field, object, fieldName) {
+		try {
+		    checkField(field, object, fieldName);
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
+
+
 	// Extracted common error messages.
 	function primitiveTypeMismatchError(qualifier, field, value, expectedType) {
 		return qualifier + " field '" + field + "' type mismatch: '" + value + "' (type '" + typeof value + "') is not of schema type '" + expectedType + "'";
@@ -242,75 +337,9 @@ schema class teacher
 			// Skip fields we use internally.
 			if (field.indexOf('_schema_') === 0) continue;
 
-			// Handle the different qualifiers.
-			switch (schema[field].qualifier) {
+		    //console.log (schema[field]());
 
-				case "required":
-					if (object[field] === undefined || object[field] === null)
-						throw new Error("required field '" + field + "' is " + object[field]);
-					if (isPrimitive(schema[field].type)) {
-						// Check primitive field's type.
-						if (typeof object[field] !== schema[field].type)
-							throw primitiveTypeMismatchError("required", field, object[field], schema[field].type);
-					} else {
-						// Schema field: check structure recursively.
-						try {
-							check(schema[field].type, object[field]);
-						} catch (e) {
-							throw new Error("required field '" + field + "' substructure mismatch: { " + e + " }");
-						}
-					}
-					break;
-
-				case "optional":
-					if (object[field] === undefined || object[field] === null) {
-						// Field is is optional and not present, all right, continue.
-						;  // Nothing to do.
-					// Field is optional and present.
-					} else if (isPrimitive(schema[field].type)) {
-						// Check primitive field's type.
-						if (typeof object[field] !== schema[field].type)
-							throw primitiveTypeMismatchError("optional", field, object[field], schema[field].type);
-					} else {
-						// Schema field: check structure recursively.
-						try {
-							check(schema[field].type, object[field]);
-						} catch (e) {
-							throw new Error("optional field '" + field + "' substructure mismatch: { " + e + " }");
-						}
-					}
-					break;
-
-				case "repeated":
-					// Object check: only allow arrays.
-					if (object[field] === undefined || object[field] === null)
-						throw new Error("repeated field '" + field + "' is '" + object[field] + "'");
-					if (object[field].__proto__ !== [].__proto__)
-						throw new Error("repeated field '" + field + "' is not an array: '" + object[field] + "'");
-
-					// Is it an array of primitives or objects?
-					if (isPrimitive(schema[field].type)) {
-						for (var index in object[field]) {
-							// Check if the array entry has that primitive type
-							if (typeof object[field][index] !== schema[field].type)
-								throw primitiveTypeMismatchError("repeated", field, object[field], schema[field].type);
-						}
-					} else {
-						for (var index in object[field]) {
-							// Repeated schema field: check recursively if the array entry matches the subschema
-							try {
-								check(schema[field].type, object[field][index]);
-							} catch (e) {
-								throw new Error("repeated field '" + field + "' substructure mismatch: { " + e + " }");
-							}
-						}
-					}
-					break;
-
-				default:
-					// If switch did not match, we got a bad input (but this impossible due to the `valid_schema()` check).
-					throw new Error("jsschema: Illegal state: No qualifier matched");
-			}
+		    checkField (schema[field], object[field], field);
 		}
 
 		return object;
@@ -323,6 +352,8 @@ schema class teacher
 	exports.repeated = repeated;
 	exports.check = check;
 	exports.valid = valid;
+    exports.checkField = checkField;
+    exports.validField = validField;
 
 })(typeof exports === 'undefined' ? (this['jsschema'] = {}) : exports);
 
