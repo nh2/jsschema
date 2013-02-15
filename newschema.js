@@ -163,10 +163,6 @@ function checkStrict (ty, object) {
                 if (typeof object !== "object") throw TypeMismatch ("object", typeof object);
 
                 for (var key in object) {
-
-                    console.log (ty.typeArgs[0]);
-                    console.log (object[key]);
-                    
                     checkStrict (ty.typeArgs[0], object[key]);
                 }
 
