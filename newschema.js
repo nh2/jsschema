@@ -260,7 +260,7 @@ var BinTree = schema (function (a) {
 
 var SimpleRecord = {
     hello : Map (Optional ("string"))
-}
+};
 
 var List = schema (function (a) {
     this.Empty = {};
