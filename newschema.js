@@ -129,7 +129,7 @@ function checkStrict (ty, object) {
 
     case "object":
 
-        // is it a primitive (Optional, Repeated)?
+        // is it a built-in (Optional, Repeated)?
         if (ty instanceof BuiltinType) {
             switch (ty.type) {
             case "Optional":
