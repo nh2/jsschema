@@ -22,15 +22,19 @@ function Optional () {
     return new BuiltinType ("Optional", arguments);
 }
 
+function Map () {
+    return new BuiltinType ("Map", arguments);
+}
+
 function schema (schemaBody) {
     return function () {
-	return new SchemaBody (schemaBody, arguments);
+	    return new SchemaBody (schemaBody, arguments);
     };
 }
 
 function record (recordBody) {
     return function () {
-	return new RecordBody (recordBody, arguments);
+	    return new RecordBody (recordBody, arguments);
     };
 }
 
@@ -49,7 +53,7 @@ function validSchema (sch) {
     // make dummy type arguments
     var dummyTypes = [];
     for (var i = 0; i < arity; i++) {
-	dummyTypes[i] = new DummyType (i);
+	    dummyTypes[i] = new DummyType (i);
     }
 
     // create a schema instance with the dummies
@@ -59,15 +63,15 @@ function validSchema (sch) {
     // for each constructor
     for (var constr in body) {
 
-	try {
-	    checkStrict (body[constr]);
-	} catch (e) {
-	    if (!(typeof e === "object")) throw e;
-	    // not a simple type, is it a record?
-	    for (var field in body[constr]) {
-		checkStrict (body[constr][field]);
+	    try {
+	        checkStrict (body[constr]);
+	    } catch (e) {
+	        if (!(typeof e === "object")) throw e;
+	        // not a simple type, is it a record?
+	        for (var field in body[constr]) {
+		        checkStrict (body[constr][field]);
+	        }
 	    }
-	}
     }
 
     return body;
@@ -88,7 +92,7 @@ function createSchema (schemaBody) {
 function check (schema, object) {
     throw TODO ("check");
     for (var constr in schema) {
-	
+	    
     }
 }
 
@@ -103,153 +107,176 @@ function checkStrict (ty, object) {
     switch (typeof ty) {
 
     case "string":
-	switch (ty) {
+	    switch (ty) {
 
-	case "number":
-	case "string":
-	case "boolean":
-	case "object":
-	    if (isUndefinedNull (object)) throw UndefinedNullValue ();
+	    case "number":
+	    case "string":
+	    case "boolean":
+	    case "object":
+	        if (isUndefinedNull (object)) throw UndefinedNullValue ();
+	        break;
+	    default:
+	        throw InvalidType (ty);
+	    }
+	    if (typeof object !== ty) throw TypeMismatch (ty, typeof object);
 	    break;
-	default:
-	    throw InvalidType (ty);
-	}
-	if (typeof object !== ty) throw TypeMismatch (ty, typeof object);
-	break;
 
-	// DEBUG is this desirable?
-	// Type treated as Type()
+	    // DEBUG is this desirable?
+	    // Type treated as Type()
     case "function":
-	ty = ty ();
-	// no break!
+	    ty = ty ();
+	    // no break!
 
     case "object":
 
-	// is it a primitive (Optional, Repeated)?
-	if (ty instanceof BuiltinType) {
-	    switch (ty.type) {
-	    case "Optional":
+	    // is it a primitive (Optional, Repeated)?
+	    if (ty instanceof BuiltinType) {
+	        switch (ty.type) {
+	        case "Optional":
 
-		if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
+		        if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
 
-		// don't have to check anything if undefined or null
-		if (isUndefinedNull (object)) break;
+		        // don't have to check anything if undefined or null
+		        if (isUndefinedNull (object)) break;
 
-		checkStrict (ty.typeArgs[0], object);
-		break;
+		        checkStrict (ty.typeArgs[0], object);
+		        break;
 
-	    case "Repeated":
-		if (isUndefinedNull (object)) throw UndefinedNullValue ();
+	        case "Repeated":
+		        if (isUndefinedNull (object)) throw UndefinedNullValue ();
 
-		if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
-		if (object.__proto__ !== [].__proto__)
-		    throw Expected ("Array");
+		        if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
+		        if (object.__proto__ !== [].__proto__)
+		            throw Expected ("Array");
 
-		for (var i in object) {
+		        for (var i = 0; i < object.length; i++) {
 
-		    checkStrict (ty.typeArgs[0], object[i]);
-		}
+		            checkStrict (ty.typeArgs[0], object[i]);
+		        }
 
-		break;
+		        break;
 
-	    default:
+            case "Map":
+                if (isUndefinedNull (object)) throw UndefinedNullValue ();
 
-		throw Internal ("Unhandled built-in type: '" + type + "'");
+                if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
+                if (typeof object !== "object") throw TypeMismatch ("object", typeof object);
+
+                for (var key in object) {
+
+                    console.log (ty.typeArgs[0]);
+                    console.log (object[key]);
+                    
+                    checkStrict (ty.typeArgs[0], object[key]);
+                }
+
+                break;
+
+	        default:
+
+		        throw Internal ("Unhandled built-in type: '" + type + "'");
+	        }
+
+	        break;
 	    }
 
-	    break;
-	}
+	    // at this point we know that object must be of type "object" and cannot be null
+	    if (isUndefinedNull (object)) throw UndefinedNullValue ();
+	    if (typeof object !== "object") throw TypeMismatch ("object", typeof object);
 
-	// at this point we know that object must be of type "object" and cannot be null
-	if (isUndefinedNull (object)) throw UndefinedNullValue ();
-	if (typeof object !== "object") throw TypeMismatch ("object", typeof object);
+	    // is it a record?
+	    if (ty instanceof RecordBody) {
+	        // check arity
+	        if (ty.bodyRaw.length !== ty.typeArgs.length) {
+		        throw ArityMismatch (ty.bodyRaw.length);
+	        }
 
-	// is it a record?
-	if (ty instanceof RecordBody) {
-	    // check arity
-	    if (ty.bodyRaw.length !== ty.typeArgs.length) {
-		throw ArityMismatch (ty.bodyRaw.length);
+	        var record = createRecord (ty);
+
+	        checkStrict (record, object);
+
+	        break;
 	    }
 
-	    var record = createRecord (ty);
+	    // is it a schema?
+	    if (ty instanceof SchemaBody) {
+	        // check arity
+	        if (ty.bodyRaw.length !== ty.typeArgs.length) {
+		        throw ArityMismatch (ty.bodyRaw.length);
+	        }
 
-	    checkStrict (record, object);
+	        // create schema
+	        var schema = createSchema (ty);
+	        
+	        if (isUndefinedNull (object.constr)) throw UndefinedNull ("constr");
+	        
+	        var validConstrs = Object.keys (schema);
+	        if (isUndefinedNull (schema[object.constr])) throw InvalidConstrField (object.constr, validConstrs);
+	        if (isUndefinedNull (object[object.constr])) throw UndefinedNull (object.constr);
 
-	    break;
-	}
+	        // .constr + [constr]
+	        var gotFields = Object.keys (object);
+	        if (gotFields.length !== 2) throw ExpectedFields (["constr", object.constr], gotFields);
 
-	// is it a schema?
-	if (ty instanceof SchemaBody) {
-	    // check arity
-	    if (ty.bodyRaw.length !== ty.typeArgs.length) {
-		throw ArityMismatch (ty.bodyRaw.length);
+	        checkStrict (schema[object.constr], object[object.constr]);
+
+	        break;
 	    }
 
-	    // create schema
-	    var schema = createSchema (ty);
-	    
-	    if (isUndefinedNull (object.constr)) throw UndefinedNull ("constr");
-	    
-	    var validConstrs = Object.keys (schema);
-	    if (isUndefinedNull (schema[object.constr])) throw InvalidConstrField (object.constr, validConstrs);
-	    if (isUndefinedNull (object[object.constr])) throw UndefinedNull (object.constr);
+	    // TODO no tuples for now
+	    // // is it a tuple?
+	    // if (ty.__proto__ == [].__proto__) {
+	    //     throw TODO ("checkStrict::Array");
+	    // }
 
-	    // .constr + [constr]
-	    var gotFields = Object.keys (object);
-	    if (gotFields.length !== 2) throw ExpectedFields (["constr", object.constr], gotFields);
-
-	    checkStrict (schema[object.constr], object[object.constr]);
-
-	    break;
-	}
-
-	// TODO no tuples for now
-	// // is it a tuple?
-	// if (ty.__proto__ == [].__proto__) {
-	//     throw TODO ("checkStrict::Array");
-	// }
-
-	// must be a simple object then
+	    // must be a simple object then
 		
-	var expFields = Object.keys (ty);
-	var gotFields = Object.keys (object);
+	    var expFields = Object.keys (ty);
+	    var gotFields = Object.keys (object);
 
-	if (expFields.length !== gotFields.length) throw ExpectedFields (expFields, gotFields);
+	    if (expFields.length !== gotFields.length) throw ExpectedFields (expFields, gotFields);
 
-	for (var field in ty) {
-	    if (isUndefinedNull (object[field])) throw UndefinedNull (field);
-	    checkStrict (ty[field], object[field]);
-	}
+	    for (var field in ty) {
+	        if (isUndefinedNull (object[field])) throw UndefinedNull (field);
+	        checkStrict (ty[field], object[field]);
+	    }
 
-	break;
+	    break;
+
+    case "undefined":
+        
+        var e = new Error ("[checkStrict] \"undefined\" type. Hint: recursive simple record?");
+        e.errorId = "UndefinedType";
+        throw e;
+
     default:
 
-	throw InvalidType (ty);
+	    throw InvalidType (ty);
     }
 }
 
 var BinTree = schema (function (a) {
     this.Leaf = a;
     this.Branch = { leftBranch : BinTree (a),
-		    rightBranch : BinTree (a)
-		  };
+		            rightBranch : BinTree (a)
+		          };
 });
 
 var SimpleRecord = {
-    whatever : BinTree ("string")
+    hello : Map (Optional ("string"))
 }
 
 var List = schema (function (a) {
     this.Empty = {};
     this.Cons = { head : a,
-		  tail : List (a)
-		};
+		          tail : List (a)
+		        };
 });
 
 var Maybe = schema (function (a) {
     this.Nothing = {};
     this.Just = { fromJust : a
-		};
+		        };
 });
 
 var Either = schema (function (a, b) {
@@ -259,8 +286,8 @@ var Either = schema (function (a, b) {
 
 var Pair = record (function (a, b) {
     return { fst : a,
-	     snd : b
-	   };
+	         snd : b
+	       };
 });
 
 function ArityMismatch (typeNum) {
@@ -277,8 +304,8 @@ function InvalidType (type) {
 
 function TypeMismatch (typeExpected, typeGot) {
     var e = new Error ("[" + arguments.callee.caller.name +
-		       "] Type mismatch: expected '" + typeExpected +
-		       "', got '" + typeGot + "'");
+		               "] Type mismatch: expected '" + typeExpected +
+		               "', got '" + typeGot + "'");
     e.errorId = "TypeMismatch";
     return e; 
 }
@@ -303,7 +330,7 @@ function UndefinedNullValue () {
 
 function InvalidConstrField (constr, validConstrs) {
     var e = new Error ("[checkStrict] Invalid constr field '" + constr +
-		       "', expected one of " + validConstrs);
+		               "', expected one of " + validConstrs);
     e.errorId = "InvalidConstrField";
     return e;
 }
