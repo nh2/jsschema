@@ -146,7 +146,7 @@ function checkStrict (ty, object) {
                 if (isUndefinedNull (object)) throw UndefinedNullValue ();
 
                 if (ty.typeArgs.length !== 1) throw ArityMismatch (1);
-                if (object.__proto__ !== [].__proto__)
+                if (Object.prototype.toString.call (object) === '[object Array]')
                     throw Expected ("Array");
 
                 for (var i = 0; i < object.length; i++) {
