@@ -127,9 +127,24 @@ function checkStrict (ty, object) {
         ty = ty ();
         // no break!
 
+        // The above is a syntactic convenience.
+        // It allows you to write the following
+        // var ListNumbers = schema (function () {
+        //     this.Nil = {};
+        //     this.Cons = {
+        //         head : "int",
+        //         tail : ListNumbers,  /// <- instead of ListNumbers() here
+        //         simple : Simple
+        //     };
+        // });
+
+        // This makes sense because `ListNumbers` could also be a simple object like
+        // {'a' : 1}, and we want to save the user form having to think about whether
+        // brackets have to be used or not all the time.
+
     case "object":
 
-        // is it a built-in (Optional, Repeated)?
+        // is it a built-in (Optional, Repeated, Map)?
         if (ty instanceof BuiltinType) {
             switch (ty.type) {
             case "Optional":
